@@ -9,8 +9,15 @@ while 1
     disp(command)
     write(device,command,"int8");
     
-    reply = readline(device);
-    disp(reply)
+    reply = readline(device)
+    if reply ~= '0'
+        for ii = 1:4
+        reply = readline(device);
+        disp(reply);
+    
+        ii = ii + 1;
+        end
+    end
  
     
 end
