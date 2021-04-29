@@ -1,19 +1,40 @@
-/*  알티노 블루투스 제어   */
-/* ********************** */
+/***********   알티노 블루투스 제어   ************/
+/* ******************************************* */
 // 작성일: 2021-04-28
-// 설명
-// 매트랩 으로 부터 10 바이트 패킷을 수신 받음
+// 작성자: 기계융합공학과 이승신 (2018013246)
+// 목  적: 공학프로그래밍 프로젝트
+// 설  명
+// 매트랩 으로 부터 10 바이트 패킷을 수신 받아 알티노의 원격 제어 구현
 
 
-/*****  패킷 프로토콜 ******/
-// STX  0 0 0 1 1 1 x x ETX
-// 000 = 전진 속도
-// 111 = 조향값 이때 원래 조향값은 -127 ~ 127 이나
-// 시리얼 통신으로 받는 값은 0 ~ 255
-// 따라서 Steering2(x-127, ) 이런 식으로 대입
-// xx = 임시 바이트
-// ETX
+/****************  패킷 프로토콜   ***************/
+// STX / Speed_H/ Speed_L /Steer_H /Steer_L/ None /None /None /ETX
 
+// STX = 시작 바이트
+
+// Speed_H = 전진 속도 100의 자리 이상
+// Speed_L = 전진 속도 100의 자리 미만
+// 코드 상에서 두개를 더함
+// Ex) STX 1 55
+// Speed = 155
+
+// Steer_H = 조향값 100의 자리 이상
+// Steer_L = 조향값 100의 자리 미만
+// 코드 상에서 두개를 더하여 최종 조향값이 나옴
+
+// None = 아직 할당 되지 않은 바이트
+
+// ETX = 종료 바이트
+
+/*******************************************************/
+/***디버그 용으로 컴퓨터로 데이터가 전송 ( 시리얼 모니터)* */
+/* ! 주의 ! 디버그 모드시 알티노는 작동 되지 않음         */
+/* 사용하려면 주석 해제                                 */
+/******************************************************/
+/*                                                    */
+//#define DEBUG_MODE
+/*                                                    */
+/******************************************************/
 
 
 
@@ -21,6 +42,8 @@
 #include <SoftwareSerial.h>
 #include <Altino.h>
 #include <math.h>
+
+int bufferflush();
 
 // 알티노 센서 구조체 선언
 SensorData sdata;
@@ -31,7 +54,7 @@ int blueRx = 6;
 SoftwareSerial bluetooth(blueTx, blueRx);
 
 // 시리얼 통신 데이터 합칠 임시 데이터
-char data[10] = "\0";
+char data[10];
 bool receiveComplete = 0;
 char success = '0';
 
@@ -55,27 +78,100 @@ void loop() {
       // 수신 패킷 STX 확인
       if (bluetooth.read() == 0x02) {
         // 수신 받은 데이터 합치기
-        for (int i = 0; i<7; i++) {
+        for (int i = 0; i<9; i++) {
             data[i] = bluetooth.read();
           }
 
-      // 속도 데이터를 숫자로 변환
-        throttle = 0;
-        throttle = ((int)data[0] << 8) + (int)data[1];
+          #ifdef DEBUG_MODE
+          Serial.println("data[i]");
+          Serial.print((int)data[0]);
+          Serial.print("\t"); Serial.print((int)data[1]);
+          Serial.print("\t"); Serial.print((int)data[2]);
+          Serial.print("\t"); Serial.print((int)data[3]);
+          Serial.print("\t"); Serial.print((int)data[4]);
+          Serial.print("\t"); Serial.print((int)data[5]);
+          Serial.print("\t"); Serial.print((int)data[6]);
+          Serial.print("\t"); Serial.print((int)data[7]);
+          Serial.print("\t"); Serial.print((int)data[8]);
+          Serial.print("\n");
+          Serial.print("Bluetooth Buffer: ");
+          Serial.println(bluetooth.available());
 
-        // 조향 데이터를 숫자로 변
-        steering = 0;
-        steering = ((int)data[2] << 8) + (int)data[3];
-        // 알티노 제
-        Go(throttle,throttle);
-        Steering2(steering-127, steeringTrim-127);
 
-        bluetooth.println("Success");
+          #endif
+
+        // 패킷에 문제가 없을때
+        if (data[8] == 0x03)  {
+
+          // 속도 데이터를 숫자로 변환
+            throttle = 0;
+            throttle = ((int)data[0] << 8) + (int)data[1];
+
+            // 조향 데이터를 숫자로 변
+            steering = 0;
+            steering = ((int)data[2] << 8) + (int)data[3];
+
+            // 알티노 제어
+            #ifndef DEBUG_MODE
+            Go(throttle,throttle);
+            Steering2(steering-127, steeringTrim-127);
+            #endif
+
+            // 매트랩에 통신성공 보고
+            bluetooth.println("0");
+            bluetooth.flush();
+
+        }
+
+        // 패킷에 문제가 있을때
+        else  {
+          bluetooth.println("-1");
+
+          #ifdef DEBUG_MODE
+          Serial.println("ERROR: ETX is not detected");
+          Serial.println("data[i]");
+          Serial.print((int)data[0]);
+          Serial.print("\t"); Serial.print((int)data[1]);
+          Serial.print("\t"); Serial.print((int)data[2]);
+          Serial.print("\t"); Serial.print((int)data[3]);
+          Serial.print("\t"); Serial.print((int)data[4]);
+          Serial.print("\t"); Serial.print((int)data[5]);
+          Serial.print("\t"); Serial.print((int)data[6]);
+          Serial.print("\t"); Serial.print((int)data[7]);
+          Serial.print("\t"); Serial.print((int)data[8]);
+          Serial.print("\n");
+
+          #endif
+
+        }
       }
 
-      // 잘못된 데이터 하니씩 제거
+      // 잘못된 데이터 제거
       else  {
+
+        #ifdef DEBUG_MODE
+        Serial.println("ERROR: STX is not detected");
+
+        Serial.print("Buffer: ");
+        Serial.println(bluetooth.available());
+
+        Serial.println("Buffer datas :");
+        while (bluetooth.available()) {
+          Serial.print((int)bluetooth.read());
+          Serial.print("\t");
+        }
+        #endif
+
+        bufferflush();
+        bluetooth.println("-1");
+      }
+      }
+    }
+
+    int bufferflush() {
+      while (bluetooth.available()) {
         bluetooth.read();
       }
-      }
+
+      return 0;
     }
