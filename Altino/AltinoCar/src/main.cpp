@@ -1,13 +1,20 @@
 /***********   알티노 블루투스 제어   ************/
 /* ******************************************* */
 // 작성일: 2021-04-28
-// 작성자: 기계융합공학과 이승신 (2018013246)
+// 작성자: 경상대학교 기계융합공학과 이승신 (2018013246)
 // 목  적: 공학프로그래밍 프로젝트
 // 설  명
-// 매트랩 으로 부터 10 바이트 패킷을 수신 받아 알티노의 원격 제어 구현
-
+// * 매트랩 으로 부터 10 바이트 패킷을 수신 받아 알티노의 원격 제어 구현
+//
+//
+// Bluetooth Serial BaudRate = 9600bps
+// HardWare Serial BaudRate =115200bps
 
 /****************  패킷 프로토콜   ***************/
+// 설  명
+// 매트랩 에서 10바이트 패킷을 전송
+//
+// 구  조
 // STX / Speed_H/ Speed_L /Steer_H /Steer_L/ None /None /None /ETX
 
 // STX = 시작 바이트
@@ -26,7 +33,7 @@
 
 // ETX = 종료 바이트
 
-/*******************************************************/
+/*******************  디버그 모드  **********************/
 /***디버그 용으로 컴퓨터로 데이터가 전송 ( 시리얼 모니터)* */
 /* ! 주의 ! 디버그 모드시 알티노는 작동 되지 않음         */
 /* 사용하려면 주석 해제                                 */
@@ -41,27 +48,25 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 #include <Altino.h>
-#include <math.h>
 
 int bufferflush();
 
+
+
 // 알티노 센서 구조체 선언
 SensorData sdata;
-
 // 블루투스 Tx Rx 핀이 아두이노에 연결된 위치
 int blueTx = 5;
 int blueRx = 6;
 SoftwareSerial bluetooth(blueTx, blueRx);
-
 // 시리얼 통신 데이터 합칠 임시 데이터
 char data[10];
-bool receiveComplete = 0;
 char success = '0';
-
 //자동자 제어 변수
 int throttle = 0;
 unsigned int steering = 0;
 unsigned int steeringTrim = 127;
+
 
 
 void setup() {
@@ -107,11 +112,24 @@ void loop() {
             throttle = 0;
             throttle = ((int)data[0] << 8) + (int)data[1];
 
-            // 조향 데이터를 숫자로 변
+            // 조향 데이터를 숫자로 변환
             steering = 0;
             steering = ((int)data[2] << 8) + (int)data[3];
 
-            // 알티노 제어
+            // 디버그 모드: 알티노 제어 변수값 출력
+            #ifdef DEBUG_MODE
+            Serial.println("Control Variables");
+            Serial.print("int throttle = ")
+            Serial.print(throttle);
+            Serial.print("\n");
+            Serial.print("unsigned int steering = ");
+            Serial.print(steering);
+            Serial.print("\n");
+            Serial.print("unsigned int steeringTrim = ");
+            Serial.println(steeringTrim);
+            #endif
+
+            // 릴리즈 모드: 알티노 제어
             #ifndef DEBUG_MODE
             Go(throttle,throttle);
             Steering2(steering-127, steeringTrim-127);
