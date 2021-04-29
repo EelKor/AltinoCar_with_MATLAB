@@ -168,6 +168,9 @@ void loop() {
       }
     }
 
+
+
+
     int bufferflush() {
       while (bluetooth.available()) {
         bluetooth.read();
