@@ -15,7 +15,7 @@
 // 매트랩 에서 10바이트 패킷을 전송
 //
 // 구  조
-// STX / Speed_H/ Speed_L /Steer_H /Steer_L/ None /None /None /ETX
+// STX / Speed_H/ Speed_L /Steer_H /Steer_L/ None /None /None /None /ETX
 
 // STX = 시작 바이트
 
@@ -39,7 +39,7 @@
 /* 사용하려면 주석 해제                                 */
 /******************************************************/
 /*                                                    */
-//#define DEBUG_MODE
+#define DEBUG_MODE
 /*                                                    */
 /******************************************************/
 
@@ -64,8 +64,8 @@ char data[10];
 char success = '0';
 //자동자 제어 변수
 int throttle = 0;
-unsigned int steering = 0;
-unsigned int steeringTrim = 127;
+int steering = 127;   //127 값이 중앙값 0 ~ 255
+int steeringTrim = 127; // 127 값이 중앙 0 ~ 255
 
 
 
@@ -88,6 +88,7 @@ void loop() {
           }
 
           #ifdef DEBUG_MODE
+          Serial.print("---------------------------------------------------\n");
           Serial.println("data[i]");
           Serial.print((int)data[0]);
           Serial.print("\t"); Serial.print((int)data[1]);
@@ -110,16 +111,27 @@ void loop() {
 
           // 속도 데이터를 숫자로 변환
             throttle = 0;
-            throttle = ((int)data[0] << 8) + (int)data[1];
+            //(int)data[0] * 100 연산의 최적화 버
+            throttle =
+            (((int)data[0]<<6) + ((int)data[0]<<5) + ((int)data[0]<<2)) + (int)data[1];
 
             // 조향 데이터를 숫자로 변환
+            // 수신받는 데이터 범위는 0 ~ 255 이나
+            // 실제 사용은 -127 ~ 127 이므로 변환
             steering = 0;
-            steering = ((int)data[2] << 8) + (int)data[3];
+            steering =
+            (((int)data[2]<<6) + ((int)data[2]<<5) + ((int)data[2]<<2)) + (int)data[3];
+            steering -= 127;
+
+            // 조향 Trim
+            // 향후 기능 추가 예정
+            steeringTrim = 127;
+            steeringTrim -= 127;
 
             // 디버그 모드: 알티노 제어 변수값 출력
             #ifdef DEBUG_MODE
             Serial.println("Control Variables");
-            Serial.print("int throttle = ")
+            Serial.print("int throttle = ");
             Serial.print(throttle);
             Serial.print("\n");
             Serial.print("unsigned int steering = ");
@@ -132,7 +144,7 @@ void loop() {
             // 릴리즈 모드: 알티노 제어
             #ifndef DEBUG_MODE
             Go(throttle,throttle);
-            Steering2(steering-127, steeringTrim-127);
+            Steering2(steering, steeringTrim);
             #endif
 
             // 매트랩에 통신성공 보고
@@ -168,6 +180,19 @@ void loop() {
       else  {
 
         #ifdef DEBUG_MODE
+        Serial.print("---------------------------------------------------\n");
+        Serial.println("data[i]");
+        Serial.print((int)data[0]);
+        Serial.print("\t"); Serial.print((int)data[1]);
+        Serial.print("\t"); Serial.print((int)data[2]);
+        Serial.print("\t"); Serial.print((int)data[3]);
+        Serial.print("\t"); Serial.print((int)data[4]);
+        Serial.print("\t"); Serial.print((int)data[5]);
+        Serial.print("\t"); Serial.print((int)data[6]);
+        Serial.print("\t"); Serial.print((int)data[7]);
+        Serial.print("\t"); Serial.print((int)data[8]);
+        Serial.print("\n");
+        
         Serial.println("ERROR: STX is not detected");
 
         Serial.print("Buffer: ");
@@ -181,7 +206,7 @@ void loop() {
         #endif
 
         bufferflush();
-        bluetooth.println("-1");
+        bluetooth.println("1");
       }
       }
     }
