@@ -6,7 +6,7 @@
 
 
 /*****  패킷 프로토콜 ******/
-// STX  0 0 0 1 1 1 x x ETX 
+// STX  0 0 0 1 1 1 x x ETX
 // 000 = 전진 속도
 // 111 = 조향값 이때 원래 조향값은 -127 ~ 127 이나
 // 시리얼 통신으로 받는 값은 0 ~ 255
@@ -33,11 +33,12 @@ SoftwareSerial bluetooth(blueTx, blueRx);
 // 시리얼 통신 데이터 합칠 임시 데이터
 char data[10] = "\0";
 bool receiveComplete = 0;
+char success = '0';
 
 //자동자 제어 변수
 int throttle = 0;
 unsigned int steering = 0;
-unsigned int steeringTrim = 0;
+unsigned int steeringTrim = 127;
 
 
 void setup() {
@@ -60,17 +61,16 @@ void loop() {
 
       // 속도 데이터를 숫자로 변환
         throttle = 0;
-        for (int i= 0; i<3; i++)  {
-          throttle += pow(10,2-i) * (data[i] - '0');
-        }
+        throttle = ((int)data[0] << 8) + (int)data[1];
+
         // 조향 데이터를 숫자로 변
         steering = 0;
-        for (int i=3; i<6; i++) {
-          steering += pow(10, 5-i) * (data[i] - '0');
-        }
+        steering = ((int)data[2] << 8) + (int)data[3];
         // 알티노 제
         Go(throttle,throttle);
-        Steering2(steering-127, steeringTrim);
+        Steering2(steering-127, steeringTrim-127);
+
+        bluetooth.println("Success");
       }
 
       // 잘못된 데이터 하니씩 제거
