@@ -62,6 +62,9 @@ SoftwareSerial bluetooth(blueTx, blueRx);
 // 시리얼 통신 데이터 합칠 임시 데이터
 char data[10];
 char success = '0';
+char etxfail = 'e';
+char stxfail = 's';
+
 //자동자 제어 변수
 int throttle = 0;
 int steering = 127;   //127 값이 중앙값 0 ~ 255
@@ -148,14 +151,12 @@ void loop() {
             #endif
 
             // 매트랩에 통신성공 보고
-            bluetooth.println("0");
-            bluetooth.flush();
+            bluetooth.println(success);
 
         }
 
         // 패킷에 문제가 있을때
         else  {
-          bluetooth.println("-1");
 
           #ifdef DEBUG_MODE
           Serial.println("ERROR: ETX is not detected");
@@ -170,8 +171,9 @@ void loop() {
           Serial.print("\t"); Serial.print((int)data[7]);
           Serial.print("\t"); Serial.print((int)data[8]);
           Serial.print("\n");
-
           #endif
+
+          bluetooth.println(etxfail);
 
         }
       }
@@ -192,7 +194,7 @@ void loop() {
         Serial.print("\t"); Serial.print((int)data[7]);
         Serial.print("\t"); Serial.print((int)data[8]);
         Serial.print("\n");
-        
+
         Serial.println("ERROR: STX is not detected");
 
         Serial.print("Buffer: ");
@@ -205,15 +207,16 @@ void loop() {
         }
         #endif
 
+
+        bluetooth.println(stxfail);
         bufferflush();
-        bluetooth.println("1");
       }
       }
     }
 
 
 
-
+    // 블루투스 버퍼 비우는 함수
     int bufferflush() {
       while (bluetooth.available()) {
         bluetooth.read();
