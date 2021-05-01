@@ -19,6 +19,9 @@ while 1
         switch reply
             case '0' 
                 fprintf("reply = %s\n", reply);
+                sensor = read(device,10,"int8");
+                fprintf("Sensor Data\n");
+                disp(sensor)
                 break;
             
             case 'e'

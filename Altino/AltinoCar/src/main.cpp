@@ -10,7 +10,9 @@
 // Bluetooth Serial BaudRate = 9600bps
 // HardWare Serial BaudRate =115200bps
 
-/****************  패킷 프로토콜   ***************/
+
+
+/****************  매트랩 -> 알티노 패킷 프로토콜   ***************/
 // 설  명
 // 매트랩 에서 10바이트 패킷을 전송
 //
@@ -32,6 +34,23 @@
 // None = 아직 할당 되지 않은 바이트
 
 // ETX = 종료 바이트
+
+
+
+/****************   알티노 -> 매트랩 패킷 프로토콜    **************/
+// 설  명
+// 알티노 에서 매트랩으로 응답 패킷 전송
+//
+// 구  조
+// STX / Front_IR_H / Front_IR_L / Left_IR_H / Left_IR_L / Right_IR_H / Right_IR_L / Rear_IR_H / Rear_IR_L / ETX
+//
+// STX = 시작바이트
+//
+// Front_IR_H = 전방 적외선 센서값 100의 자리 이상
+// Front_IR_L = 전방 적외선 센서값 100의 자리 미만
+
+// 나머지 값들도 같은 원리로 명명.
+
 
 /*******************  디버그 모드  **********************/
 /***디버그 용으로 컴퓨터로 데이터가 전송 ( 시리얼 모니터)* */
@@ -59,8 +78,11 @@ SensorData sdata;
 int blueTx = 5;
 int blueRx = 6;
 SoftwareSerial bluetooth(blueTx, blueRx);
+
+
 // 시리얼 통신 데이터 합칠 임시 데이터
 char data[10];
+char response[10] = {2, 0, 0, 0, 0, 0, 0, 0, 0, 3};
 char success = '0';
 char etxfail = 'e';
 char stxfail = 's';
@@ -151,7 +173,9 @@ void loop() {
             #endif
 
             // 매트랩에 통신성공 보고
-            bluetooth.println(success);
+            bluetooth.write(success);
+            // 센서값 전송
+            bluetooth.write(response,10);
 
         }
 

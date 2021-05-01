@@ -23,6 +23,7 @@ for jj = 1:100
         switch reply
             case '0' 
                 fprintf("reply = %s\n", reply);
+                sensor = read(device,10,"int8");
                 time(jj) = toc;
                 break;
             
