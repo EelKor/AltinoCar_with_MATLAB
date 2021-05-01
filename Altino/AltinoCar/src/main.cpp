@@ -69,11 +69,13 @@
 #include <Altino.h>
 
 int bufferflush();
+int makeResponsePacket(SensorData *ptr_sdata, char *ptr_response);
 
 
-
-// 알티노 센서 구조체 선언
+// 알티노 센서 구조체 선언 및 구조체 포인터 선언
 SensorData sdata;
+SensorData *ptr_sdata = &sdata;
+
 // 블루투스 Tx Rx 핀이 아두이노에 연결된 위치
 int blueTx = 5;
 int blueRx = 6;
@@ -83,6 +85,7 @@ SoftwareSerial bluetooth(blueTx, blueRx);
 // 시리얼 통신 데이터 합칠 임시 데이터
 char data[10];
 char response[10] = {2, 0, 0, 0, 0, 0, 0, 0, 0, 3};
+char *ptr_response = &response[0];
 char success = '0';
 char etxfail = 'e';
 char stxfail = 's';
@@ -175,6 +178,7 @@ void loop() {
             // 매트랩에 통신성공 보고
             bluetooth.write(success);
             // 센서값 전송
+            makeResponsePacket(ptr_sdata, ptr_response);
             bluetooth.write(response,10);
 
         }
@@ -245,6 +249,13 @@ void loop() {
       while (bluetooth.available()) {
         bluetooth.read();
       }
+
+      return 0;
+    }
+
+    // 알티노 -> 매트랩 패킷 생성
+    int makeResponsePacket(SensorData *ptr_sdata ,char *ptr_response)  {
+
 
       return 0;
     }
