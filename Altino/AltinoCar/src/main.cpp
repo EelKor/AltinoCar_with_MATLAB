@@ -58,7 +58,7 @@
 /* 사용하려면 주석 해제                                 */
 /******************************************************/
 /*                                                    */
-#define DEBUG_MODE
+//#define DEBUG_MODE
 /*                                                    */
 /******************************************************/
 
@@ -69,12 +69,11 @@
 #include <Altino.h>
 
 int bufferflush();
-int makeResponsePacket(SensorData *ptr_sdata, char *ptr_response);
+int makeResponsePacket(long *IRSensor_data, char *response);
 
 
 // 알티노 센서 구조체 선언 및 구조체 포인터 선언
 SensorData sdata;
-SensorData *ptr_sdata = &sdata;
 
 // 블루투스 Tx Rx 핀이 아두이노에 연결된 위치
 int blueTx = 5;
@@ -85,7 +84,6 @@ SoftwareSerial bluetooth(blueTx, blueRx);
 // 시리얼 통신 데이터 합칠 임시 데이터
 char data[10];
 char response[10] = {2, 0, 0, 0, 0, 0, 0, 0, 0, 3};
-char *ptr_response = &response[0];
 char success = '0';
 char etxfail = 'e';
 char stxfail = 's';
@@ -94,6 +92,8 @@ char stxfail = 's';
 int throttle = 0;
 int steering = 127;   //127 값이 중앙값 0 ~ 255
 int steeringTrim = 127; // 127 값이 중앙 0 ~ 255
+
+long IRSensor_data[4] = {0, 0, 0, 0};
 
 
 
@@ -104,6 +104,15 @@ void setup() {
 }
 
 void loop() {
+// 센서 값 읽어오기
+#ifndef DEBUG_MODE
+sdata = Sensor(1);
+IRSensor_data[0] = sdata.IRSensor[1];
+IRSensor_data[1] = sdata.IRSensor[3];
+IRSensor_data[2] = sdata.IRSensor[4];
+IRSensor_data[3] = sdata.IRSensor[5];
+#endif
+
 
 // 블루투스 버퍼크기 10까지 대기
   if (bluetooth.available() >= 10) {
@@ -178,7 +187,7 @@ void loop() {
             // 매트랩에 통신성공 보고
             bluetooth.write(success);
             // 센서값 전송
-            makeResponsePacket(ptr_sdata, ptr_response);
+            makeResponsePacket(&IRSensor_data[0], &response[0]);
             bluetooth.write(response,10);
 
         }
@@ -254,8 +263,27 @@ void loop() {
     }
 
     // 알티노 -> 매트랩 패킷 생성
-    int makeResponsePacket(SensorData *ptr_sdata ,char *ptr_response)  {
+    int makeResponsePacket(long *IRSensor_data ,char *response)  {
+      for(int i=0; i<4; i++)  {
+        long hundred = 0;
+        long temp = *(IRSensor_data + i);
 
+        hundred = (temp >> 6) + (temp >> 5) + (temp >> 2);
+        *(response + (2*i+1)) = (char)hundred;
+        *(response + (2*i+2)) = (char)(temp - hundred);
 
+      }
+      #ifdef DEBUG_MODE
+      Serial.println("Func: int makeResponsePacket(long*, char*)");
+      Serial.print("Response Packet\n");
+      Serial.print(*IRSensor_data);
+      Serial.print("\t");
+      Serial.print(*IRSensor_data+1);
+      Serial.print("\t");
+      Serial.print(*IRSensor_data+2);
+      Serial.print("\t");
+      Serial.print(*IRSensor_data+3);
+      Serial.print("\n");
+      #endif
       return 0;
     }
