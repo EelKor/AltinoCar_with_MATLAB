@@ -69,7 +69,7 @@
 #include <Altino.h>
 
 int bufferflush();
-int makeResponsePacket(long *IRSensor_data, char *response);
+int makeResponsePacket(long *IRSensor_data, unsigned char *response);
 
 
 // 알티노 센서 구조체 선언 및 구조체 포인터 선언
@@ -82,11 +82,11 @@ SoftwareSerial bluetooth(blueTx, blueRx);
 
 
 // 시리얼 통신 데이터 합칠 임시 데이터
-char data[10];
-char response[10] = {2, 0, 0, 0, 0, 0, 0, 0, 0, 3};
-char success = '0';
-char etxfail = 'e';
-char stxfail = 's';
+unsigned char data[10];
+unsigned char response[10] = {2, 0, 0, 0, 0, 0, 0, 0, 0, 3};
+unsigned char success = '0';
+unsigned char etxfail = 'e';
+unsigned char stxfail = 's';
 
 //자동자 제어 변수
 int throttle = 0;
@@ -263,14 +263,17 @@ IRSensor_data[3] = sdata.IRSensor[5];
     }
 
     // 알티노 -> 매트랩 패킷 생성
-    int makeResponsePacket(long *IRSensor_data ,char *response)  {
+    int makeResponsePacket(long *IRSensor_data ,unsigned char *response)  {
+      long hundred;
+      long temp = 0;
       for(int i=0; i<4; i++)  {
-        long hundred = 0;
-        long temp = *(IRSensor_data + i);
+        hundred = 0;
+        temp = *(IRSensor_data + i);
+        //bluetooth.println(temp);
 
-        hundred = (temp >> 6) + (temp >> 5) + (temp >> 2);
+        hundred = temp / 100;
         *(response + (2*i+1)) = (char)hundred;
-        *(response + (2*i+2)) = (char)(temp - hundred);
+        *(response + (2*i+2)) = (char)(temp - (hundred*100));
 
       }
       #ifdef DEBUG_MODE
