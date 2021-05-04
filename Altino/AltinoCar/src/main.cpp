@@ -82,7 +82,7 @@ SoftwareSerial bluetooth(blueTx, blueRx);
 
 
 // 시리얼 통신 데이터 합칠 임시 데이터
-unsigned char data[10];
+unsigned char data[9];
 unsigned char response[10] = {2, 0, 0, 0, 0, 0, 0, 0, 0, 3};
 unsigned char success = '0';
 unsigned char etxfail = 'e';
@@ -120,9 +120,7 @@ IRSensor_data[3] = sdata.IRSensor[5];
       // 수신 패킷 STX 확인
       if (bluetooth.read() == 0x02) {
         // 수신 받은 데이터 합치기
-        for (int i = 0; i<9; i++) {
-            data[i] = bluetooth.read();
-          }
+          bluetooth.readBytes(data, 9);
 
           #ifdef DEBUG_MODE
           Serial.print("---------------------------------------------------\n");
@@ -143,10 +141,10 @@ IRSensor_data[3] = sdata.IRSensor[5];
 
           #endif
 
-        // 패킷에 문제가 없을때
-        if (data[8] == 0x03)  {
+            // 패킷에 문제가 없을때
+            if (data[8] == 0x03)  {
 
-          // 속도 데이터를 숫자로 변환
+            // 속도 데이터를 숫자로 변환
             throttle = 0;
             //(int)data[0] * 100 연산의 최적화 버
             throttle =
@@ -190,10 +188,10 @@ IRSensor_data[3] = sdata.IRSensor[5];
             makeResponsePacket(&IRSensor_data[0], &response[0]);
             bluetooth.write(response,10);
 
-        }
+            }
 
         // 패킷에 문제가 있을때
-        else  {
+          else  {
 
           #ifdef DEBUG_MODE
           Serial.println("ERROR: ETX is not detected");
@@ -212,8 +210,9 @@ IRSensor_data[3] = sdata.IRSensor[5];
 
           bluetooth.println(etxfail);
 
+          }
         }
-      }
+
 
       // 잘못된 데이터 제거
       else  {
@@ -248,10 +247,8 @@ IRSensor_data[3] = sdata.IRSensor[5];
         bluetooth.println(stxfail);
         bufferflush();
       }
-      }
-    }
-
-
+  }
+}
 
     // 블루투스 버퍼 비우는 함수
     int bufferflush() {
