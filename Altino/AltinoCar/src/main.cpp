@@ -94,6 +94,7 @@ int steering = 127;   //127 값이 중앙값 0 ~ 255
 int steeringTrim = 127; // 127 값이 중앙 0 ~ 255
 
 long IRSensor_data[4] = {0, 0, 0, 0};
+long IRSensor_Old = 0;
 
 
 
@@ -111,6 +112,14 @@ IRSensor_data[0] = sdata.IRSensor[1];
 IRSensor_data[1] = sdata.IRSensor[3];
 IRSensor_data[2] = sdata.IRSensor[4];
 IRSensor_data[3] = sdata.IRSensor[5];
+// 주행 안전 장치
+if (IRSensor_data[0] - IRSensor_Old > 100) {
+  Go(0,0);
+  Sound(23);
+}
+else  {
+  Sound(0);
+}
 #endif
 
 
@@ -247,6 +256,8 @@ IRSensor_data[3] = sdata.IRSensor[5];
         bufferflush();
       }
   }
+
+  IRSensor_Old = sdata.IRSensor[0];
 }
 
     // 블루투스 버퍼 비우는 함수
