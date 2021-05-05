@@ -10,7 +10,7 @@ disp("Test Start");
 for jj = 1:100
     fprintf("Test %d" , jj);
     % 전송할 명령
-    command = [2 0 0 1 27 65 65 65 65 3];
+    command = [2 0 0 0 127 65 65 65 65 3];
     
     % 블루투스 시리얼로 int8형식으로 전송
     tic
@@ -23,6 +23,7 @@ for jj = 1:100
         switch reply
             case '0' 
                 fprintf("reply = %s\n", reply);
+                sensor = read(device,10,"int8");
                 time(jj) = toc;
                 break;
             
