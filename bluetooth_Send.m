@@ -17,7 +17,7 @@ while 1
     Steer_L = steer - bitshift(Steer_H, 7);
     
     % 입력 받은 명령 출력
-    command = [2 Speed_H Speed_L Steer_H Steer_L 65 65 65 65 3]
+    command = [2 Speed_H Speed_L Steer_H Steer_L 65 65 65 65 3];
     % 블루투스 시리얼로 int8형식으로 전송
     write(device,command,"int8");
     
