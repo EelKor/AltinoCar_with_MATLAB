@@ -145,17 +145,16 @@ IRSensor_data[3] = sdata.IRSensor[5];
             if (data[8] == 0x03)  {
 
             // 속도 데이터를 숫자로 변환
-            throttle = 0;
+            throttle = 1000;
             //(int)data[0] * 100 연산의 최적화 버
-            throttle =
-            (((int)data[0]<<6) + ((int)data[0]<<5) + ((int)data[0]<<2)) + (int)data[1];
+            throttle = (int)((data[0] << 7) + data[1]);
+            throttle -= 1000;
 
             // 조향 데이터를 숫자로 변환
             // 수신받는 데이터 범위는 0 ~ 255 이나
             // 실제 사용은 -127 ~ 127 이므로 변환
             steering = 0;
-            steering =
-            (((int)data[2]<<6) + ((int)data[2]<<5) + ((int)data[2]<<2)) + (int)data[3];
+            steering = (int)((data[2] << 7) + data[3]);
             steering -= 127;
 
             // 조향 Trim
@@ -260,7 +259,7 @@ IRSensor_data[3] = sdata.IRSensor[5];
     }
 
     // 알티노 -> 매트랩 패킷 생성
-    int makeResponsePacket(long *IRSensor_data ,unsigned char *response)  {
+    inline int makeResponsePacket(long *IRSensor_data ,unsigned char *response)  {
       long hundred;
       long temp = 0;
       for(int i=0; i<4; i++)  {
@@ -268,9 +267,9 @@ IRSensor_data[3] = sdata.IRSensor[5];
         temp = *(IRSensor_data + i);
         //bluetooth.println(temp);
 
-        hundred = temp / 100;
+        hundred = temp >> 8;
         *(response + (2*i+1)) = (char)hundred;
-        *(response + (2*i+2)) = (char)(temp - (hundred*100));
+        *(response + (2*i+2)) = (char)(temp - (hundred << 8));
 
       }
       #ifdef DEBUG_MODE
