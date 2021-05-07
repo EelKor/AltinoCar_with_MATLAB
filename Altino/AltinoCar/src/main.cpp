@@ -92,9 +92,7 @@ unsigned char stxfail = 's';
 int throttle = 0;
 int steering = 127;   //127 값이 중앙값 0 ~ 255
 int steeringTrim = 127; // 127 값이 중앙 0 ~ 255
-
-long IRSensor_data[4] = {0, 0, 0, 0};
-long IRSensor_Old = 0;
+bool emergency = 0;
 
 
 
@@ -211,6 +209,8 @@ else  {
             bluetooth.write(success);
 
             // 센서값 전송
+            // 센서값 업데이트
+            sdata = Sensor(1);
             makeResponsePacket(&sdata.IRSensor[1], &response[0]);
             bluetooth.write(response,10);
 
@@ -274,8 +274,6 @@ else  {
         bufferflush();
       }
   }
-
-  IRSensor_Old = sdata.IRSensor[0];
 }
 
     // 블루투스 버퍼 비우는 함수
