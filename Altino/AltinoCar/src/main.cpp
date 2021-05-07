@@ -108,17 +108,34 @@ void loop() {
 // 센서 값 읽어오기
 #ifndef DEBUG_MODE
 sdata = Sensor(1);
-IRSensor_data[0] = sdata.IRSensor[1];
-IRSensor_data[1] = sdata.IRSensor[3];
-IRSensor_data[2] = sdata.IRSensor[4];
-IRSensor_data[3] = sdata.IRSensor[5];
+
+
 // 주행 안전 장치
-if (IRSensor_data[0] - IRSensor_Old > 100) {
+// 비상 제동 장치 및 회피 장치
+int index = 140;
+if (sdata.IRSensor[0] > index || sdata.IRSensor[1] > index || sdata.IRSensor[2] > index ) {
   Go(0,0);
   Sound(23);
+
+  // 회피 가능 상황1. 왼쪽 센서만 감지될 경우
+  if (sdata.IRSensor[0] > sdata.IRSensor[1] && sdata.IRSensor[0] > sdata.IRSensor[2]) {
+    Steering2(127, 0);
+  }
+
+  // 회피 가능 상황2. 오른쪽 센사만 감지될 경우
+  else if (sdata.IRSensor[2] > sdata.IRSensor[1] && sdata.IRSensor[2] > sdata.IRSensor[0]) {
+    Steering2(-127, 0);
+  }
+
+  // 나머지 상황
+  else  {
+    Steering2(0,0);
+  }
+
 }
 else  {
   Sound(0);
+  Steering2(0, 0);
 }
 #endif
 
@@ -192,8 +209,9 @@ else  {
 
             // 매트랩에 통신성공 보고
             bluetooth.write(success);
+
             // 센서값 전송
-            makeResponsePacket(&IRSensor_data[0], &response[0]);
+            makeResponsePacket(&sdata.IRSensor[1], &response[0]);
             bluetooth.write(response,10);
 
             }
