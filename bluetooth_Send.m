@@ -8,8 +8,14 @@
 clear all; close all;
 clc
 % 블루투스 리스트 표시
+fprintf("Connecting...\n");
 devlist = bluetoothlist("Timeout",20)
 device = bluetooth("0018E43524DC")
+
+% 그래프 초기설정
+figure(1)
+Carshape = polyshape([-50 -50 50 50],[ 90 -90 -90 90]);
+
 
 while 1
     % 속도명령 입력받음
@@ -44,9 +50,17 @@ while 1
         switch reply
             case '0' 
                 fprintf("reply = %s\n", reply);
+                
+                % 센서값 추출 부분
                 sensor = read(device,10,"uint8");
-                fprintf("Sensor Data\n");
-                disp(sensor)
+                front = bitshift(sensor(2), 8) + sensor(3);
+                
+                % 그래프 그리기
+                plot(front,'*')
+                drawnow;
+                axis square
+                axis([-500 500 -500 500]);
+                
                 break;
             
             case 'e'
