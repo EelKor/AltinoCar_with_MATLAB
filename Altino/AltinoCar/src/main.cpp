@@ -111,29 +111,40 @@ sdata = Sensor(1);
 // 주행 안전 장치
 // 비상 제동 장치 및 회피 장치
 int index = 140;
-if (sdata.IRSensor[0] > index || sdata.IRSensor[1] > index || sdata.IRSensor[2] > index ) {
-  Go(0,0);
-  Sound(23);
+if (throttle > 0) {
 
-  // 회피 가능 상황1. 왼쪽 센서만 감지될 경우
-  if (sdata.IRSensor[0] > sdata.IRSensor[1] && sdata.IRSensor[0] > sdata.IRSensor[2]) {
-    Steering2(127, 0);
+  if (sdata.IRSensor[0] > index || sdata.IRSensor[1] > index || sdata.IRSensor[2] > index ) {
+    Go(0,0);
+    throttle = 0;
+
+    Sound(23);
+
+    // 회피 가능 상황1. 왼쪽 센서만 감지될 경우
+    if (sdata.IRSensor[0] > sdata.IRSensor[1] && sdata.IRSensor[0] > sdata.IRSensor[2]) {
+      Steering2(127, 0);
+      delay(100);
+    }
+
+    // 회피 가능 상황2. 오른쪽 센사만 감지될 경우
+    else if (sdata.IRSensor[2] > sdata.IRSensor[1] && sdata.IRSensor[2] > sdata.IRSensor[0]) {
+      Steering2(-127, 0);
+      delay(100);
+    }
+
+    // 나머지 상황
+    else  {
+      Steering2(0,0);
+      delay(100);
+    }
+
   }
-
-  // 회피 가능 상황2. 오른쪽 센사만 감지될 경우
-  else if (sdata.IRSensor[2] > sdata.IRSensor[1] && sdata.IRSensor[2] > sdata.IRSensor[0]) {
-    Steering2(-127, 0);
-  }
-
-  // 나머지 상황
   else  {
-    Steering2(0,0);
+    Sound(0);
   }
-
 }
+
 else  {
   Sound(0);
-  Steering2(0, 0);
 }
 #endif
 
