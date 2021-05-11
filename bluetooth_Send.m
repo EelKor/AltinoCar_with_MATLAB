@@ -3,11 +3,13 @@
 % 작 성 일: 2021-04-28
 % 설    명
 % 사용자로 부터 속도, 조향값을 입력받아 프로토콜에 따라 데이터 전송
+% 또한 미
 
 
 clear all; close all;
 clc
 % 블루투스 리스트 표시
+fprintf("******  ALTINO Control Program *****\n");
 fprintf("Connecting...\n");
 devlist = bluetoothlist("Timeout",20)
 device = bluetooth("0018E43524DC")
@@ -18,9 +20,6 @@ Carshape = polyshape([-50 -50 50 50],[ 90 -90 -90 90]);
 
 
 while 1
-    job = batch('SensorRead')
-    disp(recieve)
-    
     
     % 속도명령 입력받음
     speed = input("speed: ");
@@ -46,6 +45,46 @@ while 1
     
     % 블루투스 시리얼로 int8형식으로 전송
     write(device,command,"int8");
+    
+    % 통신 실패시 5번 정도 재통신 시도
+    for ii = 1:5
+        raw_read = read(device,1,"uint8");
+        
+        % 시작 바이트 인식
+        if raw_read == 2
+            recieve = read(device, 13, "uint8");
+            
+            % 종료 바이트 인식 -> 데이터 패킷 이상 유무 확인
+            if recieve(13) == 3
+                % 센서값 추출 부분
+                front_L = bitshift(recieve(1), 8) + recieve(2);
+                front_M = bitshift(recieve(3), 8) + recieve(4);
+                front_R = bitshift(recieve(5), 8) + recieve(6);
+                right = bitshift(recieve(7), 8) + recieve(8);
+                left = bitshift(recieve(9), 8) + recieve(10);
+                rear = bitshift(recieve(11), 8) + recieve(12);
+                
+                % 센서값 표시
+                result = [front_L, front_M, front_R, right, left, rear];
+                disp(result);
+                
+                % 그래프 그리기
+                %plot(front,'*')
+                %drawnow;
+                %axis square
+                %axis([-500 500 -500 500]);
+                
+                % 쌓여있는 오래된 버퍼 데이터 삭제
+                flush(device);
+                
+            else
+                flush(device);
+            end
+            
+        else
+            flush(device);
+        end
+    end
     
     
  
