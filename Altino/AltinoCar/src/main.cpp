@@ -215,7 +215,6 @@ else  {
             // 센서값 업데이트
             makeResponsePacket(&sdata.IRSensor[0], &response[0]);
             bluetooth.write(response,14);
-            delay(100);
 
             }
 
