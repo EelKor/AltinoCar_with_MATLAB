@@ -283,7 +283,7 @@ else  {
   else  {
     bufferflush();
   }
-  bluetooth.write(response,14);
+
 }
 
 
@@ -328,5 +328,7 @@ else  {
       Serial.print(*IRSensor_data+3);
       Serial.print("\n");
       #endif
+
+      bluetooth.write(response,14);
       return 0;
     }

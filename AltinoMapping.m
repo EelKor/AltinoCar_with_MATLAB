@@ -9,8 +9,13 @@ device = bluetooth("201603107014",1,"ByteOrder","little-endian","Timeout",1)
 
 
 index = 0;
+% 그래프 상수
 plot_front = [0, 0, 0];
 front_X = [-600 0 600];
+
+plot_side = [-500, 0, 500];
+right_X = [0, 0, 0];
+
 
 while 1
     index = index + 1;
@@ -40,7 +45,6 @@ while 1
     % 블루투스 시리얼로 int8형식으로 전송
     write(device,command,"int8");
     
-    % 통신 실패시 5번 정도 재통신 시도
         raw_read = read(device,1,"uint8");
         
         % 시작 바이트 인식
@@ -63,19 +67,23 @@ while 1
                 
                 % 그래프 그리기
                 plot_front = [1000-front_L, 1000-front_M, 1000-front_R];
-                plot(front_X,plot_front,'*-')
+                right_X = [1000-right, 1000-right, 1000-right];
+                left_X = [-1000+left, -1000+left, -1000+left];
+                plot_rear = [-1000+rear, -1000+rear, -1000+rear,];
+                
+                plot(front_X,plot_front,'*-', right_X,plot_side,'*-', left_X,plot_side,'*-', front_X, plot_rear,'*-' );
                 axis manual;
                 axis([-1100 1100 -1100 1100]);
                 grid on;
                 drawnow;
   
-                
+                flush(device, "input");
             else
-                flush(device);
+                flush(device, "input");
             end
             
         else
-            flush(device);
+            flush(device, "input");
         end
     end
     
