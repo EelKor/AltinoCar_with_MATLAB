@@ -1,28 +1,27 @@
-% bluetooth_Send.m
-% 작 성 자: 기계융합공학과 이승신(2018013246)
-% 작 성 일: 2021-04-28
-% 설    명
-% 사용자로 부터 속도, 조향값을 입력받아 프로토콜에 따라 데이터 전송
-% 또한 미
-
-
 clear all; close all;
 clc
+
 % 블루투스 리스트 표시
 fprintf("******  ALTINO Control Program *****\n");
 fprintf("Connecting...\n");
 devlist = bluetoothlist("Timeout",20)
-device = bluetooth("201603107014")
+device = bluetooth("201603107014",1,"ByteOrder","little-endian","Timeout",1)
 
-% 그래프 초기설정
-figure(1)
-Carshape = polyshape([-50 -50 50 50],[ 90 -90 -90 90]);
+
+index = 0;
+% 그래프 상수
+plot_front = [0, 0, 0];
+front_X = [-600 0 600];
+
+plot_side = [-500, 0, 500];
+right_X = [0, 0, 0];
 
 
 while 1
-    
-    % 속도명령 입력받음
-    speed = input("speed: ");
+    index = index + 1;
+    fprintf("Loop %d", index);
+
+    speed = 0;
     
     % 알티노 속도 범위 -1000 ~ 1000
     % 시리얼 통신으로 음수는 전송하기 힘들어서
@@ -35,7 +34,7 @@ while 1
     Speed_L = speed - bitshift(Speed_H, 7);
     
     % speed 와 동일
-    steer = input("steer: ");
+    steer = 0;
     steer = steer + 127;
     Steer_H = bitshift(steer, -7);
     Steer_L = steer - bitshift(Steer_H, 7);
@@ -46,8 +45,6 @@ while 1
     % 블루투스 시리얼로 int8형식으로 전송
     write(device,command,"int8");
     
-    % 통신 실패시 5번 정도 재통신 시도
-    for ii = 1:5
         raw_read = read(device,1,"uint8");
         
         % 시작 바이트 인식
@@ -57,7 +54,7 @@ while 1
             % 종료 바이트 인식 -> 데이터 패킷 이상 유무 확인
             if recieve(13) == 3
                 % 센서값 추출 부분
-                front_L = bitshift(recieve(1), 8) + recieve(2);
+                front_L = bitshift(recieve(1), 8) + recieve(2) - 100;
                 front_M = bitshift(recieve(3), 8) + recieve(4);
                 front_R = bitshift(recieve(5), 8) + recieve(6);
                 right = bitshift(recieve(7), 8) + recieve(8);
@@ -69,25 +66,24 @@ while 1
                 disp(result);
                 
                 % 그래프 그리기
-                %plot(front,'*')
-                %drawnow;
-                %axis square
-                %axis([-500 500 -500 500]);
+                plot_front = [1000-front_L, 1000-front_M, 1000-front_R];
+                right_X = [1000-right, 1000-right, 1000-right];
+                left_X = [-1000+left, -1000+left, -1000+left];
+                plot_rear = [-1000+rear, -1000+rear, -1000+rear,];
                 
-                % 쌓여있는 오래된 버퍼 데이터 삭제
-                flush(device);
-                break;
-                
+                plot(front_X,plot_front,'*-', right_X,plot_side,'*-', left_X,plot_side,'*-', front_X, plot_rear,'*-' );
+                axis manual;
+                axis([-1100 1100 -1100 1100]);
+                grid on;
+                drawnow;
+  
+                flush(device, "input");
             else
-                flush(device);
+                flush(device, "input");
             end
             
         else
-            flush(device);
+            flush(device, "input");
         end
     end
     
-    
- 
-end
-

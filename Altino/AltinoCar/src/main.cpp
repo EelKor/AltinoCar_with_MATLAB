@@ -82,19 +82,15 @@ SoftwareSerial bluetooth(blueTx, blueRx);
 
 
 // 시리얼 통신 데이터 합칠 임시 데이터
-unsigned char data[9];
-unsigned char response[10] = {2, 0, 0, 0, 0, 0, 0, 0, 0, 3};
-unsigned char success = '0';
-unsigned char etxfail = 'e';
-unsigned char stxfail = 's';
+unsigned char data[8];
+unsigned char response[14] = {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3};
+unsigned char stxfail[14] = {2, 83, 83, 83, 83, 83, 83, 83, 83, 83, 83, 83, 83, 3};
+unsigned char etxfail[14] = {2, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 3};
 
 //자동자 제어 변수
 int throttle = 0;
 int steering = 127;   //127 값이 중앙값 0 ~ 255
 int steeringTrim = 127; // 127 값이 중앙 0 ~ 255
-
-long IRSensor_data[4] = {0, 0, 0, 0};
-
 
 
 void setup() {
@@ -107,20 +103,55 @@ void loop() {
 // 센서 값 읽어오기
 #ifndef DEBUG_MODE
 sdata = Sensor(1);
-IRSensor_data[0] = sdata.IRSensor[1];
-IRSensor_data[1] = sdata.IRSensor[3];
-IRSensor_data[2] = sdata.IRSensor[4];
-IRSensor_data[3] = sdata.IRSensor[5];
+
+// 주행 안전 장치
+// 비상 제동 장치 및 회피 장치
+int index = 140;
+if (throttle > 0) {
+
+  if (sdata.IRSensor[0] > index || sdata.IRSensor[1] > index || sdata.IRSensor[2] > index ) {
+    Go(0,0);
+    throttle = 0;
+
+    Sound(23);
+
+    // 회피 가능 상황1. 왼쪽 센서만 감지될 경우
+    if (sdata.IRSensor[0] > sdata.IRSensor[1] && sdata.IRSensor[0] > sdata.IRSensor[2]) {
+      Steering2(127, 0);
+      delay(100);
+    }
+
+    // 회피 가능 상황2. 오른쪽 센사만 감지될 경우
+    else if (sdata.IRSensor[2] > sdata.IRSensor[1] && sdata.IRSensor[2] > sdata.IRSensor[0]) {
+      Steering2(-127, 0);
+      delay(100);
+    }
+
+    // 나머지 상황
+    else  {
+      Steering2(0,0);
+      delay(100);
+    }
+
+  }
+  else  {
+    Sound(0);
+  }
+}
+
+else  {
+  Sound(0);
+}
 #endif
 
 
-// 블루투스 버퍼크기 10까지 대기
-  if (bluetooth.available() >= 10) {
+// 블루투스 버퍼크기 9까지 대기
+  if (bluetooth.available() >= 9) {
 
       // 수신 패킷 STX 확인
       if (bluetooth.read() == 0x02) {
         // 수신 받은 데이터 합치기
-          bluetooth.readBytes(data, 9);
+          bluetooth.readBytes(data, 8);
 
           #ifdef DEBUG_MODE
           Serial.print("---------------------------------------------------\n");
@@ -133,7 +164,6 @@ IRSensor_data[3] = sdata.IRSensor[5];
           Serial.print("\t"); Serial.print((int)data[5]);
           Serial.print("\t"); Serial.print((int)data[6]);
           Serial.print("\t"); Serial.print((int)data[7]);
-          Serial.print("\t"); Serial.print((int)data[8]);
           Serial.print("\n");
           Serial.print("Bluetooth Buffer: ");
           Serial.println(bluetooth.available());
@@ -142,7 +172,7 @@ IRSensor_data[3] = sdata.IRSensor[5];
           #endif
 
             // 패킷에 문제가 없을때
-            if (data[8] == 0x03)  {
+            if (data[7] == 0x03)  {
 
             // 속도 데이터를 숫자로 변환
             throttle = 1000;
@@ -181,15 +211,15 @@ IRSensor_data[3] = sdata.IRSensor[5];
             Steering2(steering, steeringTrim);
             #endif
 
-            // 매트랩에 통신성공 보고
-            bluetooth.write(success);
             // 센서값 전송
-            makeResponsePacket(&IRSensor_data[0], &response[0]);
-            bluetooth.write(response,10);
+            // 센서값 업데이트
+            makeResponsePacket(&sdata.IRSensor[0], &response[0]);
+            bluetooth.write(response,14);
 
             }
 
         // 패킷에 문제가 있을때
+        // if (data[8] == 0x03)
           else  {
 
           #ifdef DEBUG_MODE
@@ -207,13 +237,14 @@ IRSensor_data[3] = sdata.IRSensor[5];
           Serial.print("\n");
           #endif
 
-          bluetooth.println(etxfail);
+          bluetooth.write(etxfail, 14);
 
           }
         }
 
 
       // 잘못된 데이터 제거
+      // if (bluetooth.read() == 0x02)
       else  {
 
         #ifdef DEBUG_MODE
@@ -243,11 +274,29 @@ IRSensor_data[3] = sdata.IRSensor[5];
         #endif
 
 
-        bluetooth.println(stxfail);
+        bluetooth.write(stxfail, 14);
         bufferflush();
       }
   }
+
+  // if(bluetooth.available() >= 10 )
+  else  {
+    bluetooth.write(response,14);
+    bufferflush();
+  }
+
+<<<<<<< HEAD
+  bluetooth.write(response,14);
+=======
+>>>>>>> unlimited_send
 }
+
+
+
+/********************************************************************************/
+/*   F U N C T I O N S                                                          */
+
+
 
     // 블루투스 버퍼 비우는 함수
     int bufferflush() {
@@ -259,10 +308,10 @@ IRSensor_data[3] = sdata.IRSensor[5];
     }
 
     // 알티노 -> 매트랩 패킷 생성
-    inline int makeResponsePacket(long *IRSensor_data ,unsigned char *response)  {
+    int makeResponsePacket(long *IRSensor_data ,unsigned char *response)  {
       long hundred;
       long temp = 0;
-      for(int i=0; i<4; i++)  {
+      for(int i=0; i<6; i++)  {
         hundred = 0;
         temp = *(IRSensor_data + i);
         //bluetooth.println(temp);
@@ -284,5 +333,7 @@ IRSensor_data[3] = sdata.IRSensor[5];
       Serial.print(*IRSensor_data+3);
       Serial.print("\n");
       #endif
+
+      bluetooth.write(response,14);
       return 0;
     }
