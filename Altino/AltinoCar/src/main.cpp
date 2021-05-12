@@ -283,6 +283,7 @@ else  {
   else  {
     bufferflush();
   }
+  bluetooth.write(response,14);
 }
 
 
