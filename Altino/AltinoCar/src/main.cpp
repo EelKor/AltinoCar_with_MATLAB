@@ -285,7 +285,10 @@ else  {
     bufferflush();
   }
 
+<<<<<<< HEAD
   bluetooth.write(response,14);
+=======
+>>>>>>> unlimited_send
 }
 
 
