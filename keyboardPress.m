@@ -11,7 +11,7 @@ steer = 127;
 % 블루투스 연결 부분
 fprintf(" 블루투스 연결 중 .....");
 devlist = bluetoothlist("Timeout",20)
-device = bluetooth("0018E43524DC")
+device = bluetooth("201603107014")
 
 % 원격 제어
 while 1

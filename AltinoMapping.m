@@ -40,7 +40,6 @@ while 1
     % 블루투스 시리얼로 int8형식으로 전송
     write(device,command,"int8");
     
-    % 통신 실패시 5번 정도 재통신 시도
         raw_read = read(device,1,"uint8");
         
         % 시작 바이트 인식

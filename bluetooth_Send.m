@@ -12,7 +12,7 @@ clc
 fprintf("******  ALTINO Control Program *****\n");
 fprintf("Connecting...\n");
 devlist = bluetoothlist("Timeout",20)
-device = bluetooth("0018E43524DC")
+device = bluetooth("201603107014")
 
 % 그래프 초기설정
 figure(1)
@@ -76,6 +76,7 @@ while 1
                 
                 % 쌓여있는 오래된 버퍼 데이터 삭제
                 flush(device);
+                break;
                 
             else
                 flush(device);
