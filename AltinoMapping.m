@@ -82,7 +82,8 @@ while 1
                     axis([-1100 1100 -1100 1100]);
                     grid on;
                     drawnow;
-  
+                    
+                    % 데이터가 쌓이는 것을 막기 위해 버퍼 초기화
                     flush(device, "input");
                     else
                     end

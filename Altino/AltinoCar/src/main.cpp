@@ -63,13 +63,13 @@
 /******************************************************/
 
 
-
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 #include <Altino.h>
 
 int bufferflush();
-int makeResponsePacket(long *IRSensor_data, unsigned char *response);
+int makeResponsePacket(long *IRSensor_data, unsigned char *response, int code);
+int ObstacleAvoid();
 
 
 // 알티노 센서 구조체 선언 및 구조체 포인터 선언
@@ -83,257 +83,320 @@ SoftwareSerial bluetooth(blueTx, blueRx);
 
 // 시리얼 통신 데이터 합칠 임시 데이터
 unsigned char data[8];
-unsigned char response[14] = {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3};
-unsigned char stxfail[14] = {2, 83, 83, 83, 83, 83, 83, 83, 83, 83, 83, 83, 83, 3};
-unsigned char etxfail[14] = {2, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 69, 3};
+unsigned char response[15] = {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3};
 
 //자동자 제어 변수
 int throttle = 0;
 int steering = 127;   //127 값이 중앙값 0 ~ 255
 int steeringTrim = 127; // 127 값이 중앙 0 ~ 255
 
-
-void setup() {
+void setup()    
+{
     Serial.begin(115200);
     bluetooth.begin(9600);
-
 }
 
-void loop() {
-// 센서 값 읽어오기
-#ifndef DEBUG_MODE
-sdata = Sensor(1);
+void loop() 
+{
 
-// 주행 안전 장치
-// 비상 제동 장치 및 회피 장치
-int index = 140;
-if (throttle > 0) {
+    // 센서 값 읽어오기
+    #ifndef DEBUG_MODE
+    sdata = Sensor(1);
 
-  if (sdata.IRSensor[0] > index || sdata.IRSensor[1] > index || sdata.IRSensor[2] > index ) {
-    Go(0,0);
-    throttle = 0;
+    // 주행 안전 장치
+    // 비상 제동 장치 및 회피 장치
+    // 장애물 인식 
+    int index = 140;
+    if (throttle > 0) 
+    {
 
-    Sound(23);
+        // 정면에 장애물
+        if (sdata.IRSensor[0] > index && sdata.IRSensor[1] > index && sdata.IRSensor[2] > index ) 
+        {
+            Go(0,0);
+            throttle = 0;
 
-    // 회피 가능 상황1. 왼쪽 센서만 감지될 경우
-    if (sdata.IRSensor[0] > sdata.IRSensor[1] && sdata.IRSensor[0] > sdata.IRSensor[2]) {
-      Steering2(127, 0);
-      delay(100);
+            Sound(23);
+            delay(500);
+            Sound(0);
+
+            ObstacleAvoid();
+
+        }
+
+        // 좌측에 장애물
+        else if(sdata.IRSensor[0] > index && sdata.IRSensor[1] < index && sdata.IRSensor[2] < index)  
+        {
+            Go(0,0);
+            throttle = 0;
+            Sound(20);
+            delay(500);
+            Sound(0);
+        }
+
+        // 우측에 장애물
+        else if(sdata.IRSensor[0] < index && sdata.IRSensor[1] < index && sdata.IRSensor[2] > index)   
+        {
+            Go(0,0);
+            throttle = 0;
+            Sound(26);
+            delay(500);
+            Sound(0);
+
+        }
+        else
+        {
+
+        }
     }
 
-    // 회피 가능 상황2. 오른쪽 센사만 감지될 경우
-    else if (sdata.IRSensor[2] > sdata.IRSensor[1] && sdata.IRSensor[2] > sdata.IRSensor[0]) {
-      Steering2(-127, 0);
-      delay(100);
-    }
-
-    // 나머지 상황
-    else  {
-      Steering2(0,0);
-      delay(100);
-    }
-
-  }
-  else  {
+    else  
+    {
     Sound(0);
-  }
-}
+    }
+    #endif
 
-else  {
-  Sound(0);
-}
-#endif
+    /* ********** 블루투스 통신 부분 *********** */
+    if (bluetooth.available() >= 9)
+    {
 
-
-// 블루투스 버퍼크기 9까지 대기
-  if (bluetooth.available() >= 9) {
-
-      // 수신 패킷 STX 확인
-      if (bluetooth.read() == 0x02) {
-        // 수신 받은 데이터 합치기
-          bluetooth.readBytes(data, 8);
-
-          #ifdef DEBUG_MODE
-          Serial.print("---------------------------------------------------\n");
-          Serial.println("data[i]");
-          Serial.print((int)data[0]);
-          Serial.print("\t"); Serial.print((int)data[1]);
-          Serial.print("\t"); Serial.print((int)data[2]);
-          Serial.print("\t"); Serial.print((int)data[3]);
-          Serial.print("\t"); Serial.print((int)data[4]);
-          Serial.print("\t"); Serial.print((int)data[5]);
-          Serial.print("\t"); Serial.print((int)data[6]);
-          Serial.print("\t"); Serial.print((int)data[7]);
-          Serial.print("\n");
-          Serial.print("Bluetooth Buffer: ");
-          Serial.println(bluetooth.available());
+        if (bluetooth.read() == 2)
+        {
+            bluetooth.readBytes(data, 8);
+        }
+        else   
+        {
+            // Flush, STX Error Send
+            bufferflush();
+            makeResponsePacket(&sdata.IRSensor[0], &response[0], 2);
+            bluetooth.write(response,15);
+        }
 
 
-          #endif
+        if (bluetooth.available() == 0)
+        {
+            if (data[7] == 3)
+            {
+                // 속도 데이터를 숫자로 변환
+                throttle = 1000;
+                //(int)data[0] * 100 연산의 최적화 버
+                throttle = (int)((data[0] << 7) + data[1]);
+                throttle -= 1000;
 
-            // 패킷에 문제가 없을때
-            if (data[7] == 0x03)  {
+                // 조향 데이터를 숫자로 변환
+                // 수신받는 데이터 범위는 0 ~ 255 이나
+                // 실제 사용은 -127 ~ 127 이므로 변환
+                steering = 0;
+                steering = (int)((data[2] << 7) + data[3]);
+                steering -= 127;
 
-            // 속도 데이터를 숫자로 변환
-            throttle = 1000;
-            //(int)data[0] * 100 연산의 최적화 버
-            throttle = (int)((data[0] << 7) + data[1]);
-            throttle -= 1000;
+                // 조향 Trim
+                // 향후 기능 추가 예정
+                steeringTrim = 127;
+                steeringTrim -= 127;
 
-            // 조향 데이터를 숫자로 변환
-            // 수신받는 데이터 범위는 0 ~ 255 이나
-            // 실제 사용은 -127 ~ 127 이므로 변환
-            steering = 0;
-            steering = (int)((data[2] << 7) + data[3]);
-            steering -= 127;
+                // 디버그 모드: 알티노 제어 변수값 출력
+                #ifdef DEBUG_MODE
+                Serial.println("Control Variables");
+                Serial.print("int throttle = ");
+                Serial.print(throttle);
+                Serial.print("\n");
+                Serial.print("unsigned int steering = ");
+                Serial.print(steering);
+                Serial.print("\n");
+                Serial.print("unsigned int steeringTrim = ");
+                Serial.println(steeringTrim);
+                #endif
 
-            // 조향 Trim
-            // 향후 기능 추가 예정
-            steeringTrim = 127;
-            steeringTrim -= 127;
+                // 릴리즈 모드: 알티노 제어
+                #ifndef DEBUG_MODE
+                Go(throttle,throttle);
+                Steering2(steering, steeringTrim);
+                #endif
 
-            // 디버그 모드: 알티노 제어 변수값 출력
-            #ifdef DEBUG_MODE
-            Serial.println("Control Variables");
-            Serial.print("int throttle = ");
-            Serial.print(throttle);
-            Serial.print("\n");
-            Serial.print("unsigned int steering = ");
-            Serial.print(steering);
-            Serial.print("\n");
-            Serial.print("unsigned int steeringTrim = ");
-            Serial.println(steeringTrim);
-            #endif
-
-            // 릴리즈 모드: 알티노 제어
-            #ifndef DEBUG_MODE
-            Go(throttle,throttle);
-            Steering2(steering, steeringTrim);
-            #endif
-
-            // 센서값 전송
-            // 센서값 업데이트
-            makeResponsePacket(&sdata.IRSensor[0], &response[0]);
-            bluetooth.write(response,14);
+                // 센서값 전송
+                // 센서값 업데이트
+                makeResponsePacket(&sdata.IRSensor[0], &response[0], 4);
+                bluetooth.write(response,15);
+            }
+            else
+            {
+                //ETX Error, Flush
+                bufferflush();
+                makeResponsePacket(&sdata.IRSensor[0], &response[0], 3);
+                bluetooth.write(response,15);
 
             }
-
-        // 패킷에 문제가 있을때
-        // if (data[8] == 0x03)
-          else  {
-
-          #ifdef DEBUG_MODE
-          Serial.println("ERROR: ETX is not detected");
-          Serial.println("data[i]");
-          Serial.print((int)data[0]);
-          Serial.print("\t"); Serial.print((int)data[1]);
-          Serial.print("\t"); Serial.print((int)data[2]);
-          Serial.print("\t"); Serial.print((int)data[3]);
-          Serial.print("\t"); Serial.print((int)data[4]);
-          Serial.print("\t"); Serial.print((int)data[5]);
-          Serial.print("\t"); Serial.print((int)data[6]);
-          Serial.print("\t"); Serial.print((int)data[7]);
-          Serial.print("\t"); Serial.print((int)data[8]);
-          Serial.print("\n");
-          #endif
-
-          bluetooth.write(etxfail, 14);
-
-          }
+            
         }
+        else
+        {
+            if (data[7] == 3)
+            {
+                // Flush
+                //정상인 경우
+
+                
+                // 속도 데이터를 숫자로 변환
+                throttle = 1000;
+                //(int)data[0] * 100 연산의 최적화 버
+                throttle = (int)((data[0] << 7) + data[1]);
+                throttle -= 1000;
+
+                // 조향 데이터를 숫자로 변환
+                // 수신받는 데이터 범위는 0 ~ 255 이나
+                // 실제 사용은 -127 ~ 127 이므로 변환
+                steering = 0;
+                steering = (int)((data[2] << 7) + data[3]);
+                steering -= 127;
+
+                // 조향 Trim
+                // 향후 기능 추가 예정
+                steeringTrim = 127;
+                steeringTrim -= 127;
+
+                // 디버그 모드: 알티노 제어 변수값 출력
+                #ifdef DEBUG_MODE
+                Serial.println("Control Variables");
+                Serial.print("int throttle = ");
+                Serial.print(throttle);
+                Serial.print("\n");
+                Serial.print("unsigned int steering = ");
+                Serial.print(steering);
+                Serial.print("\n");
+                Serial.print("unsigned int steeringTrim = ");
+                Serial.println(steeringTrim);
+                #endif
+
+                // 릴리즈 모드: 알티노 제어
+                #ifndef DEBUG_MODE
+                Go(throttle,throttle);
+                Steering2(steering, steeringTrim);
+                #endif
 
 
-      // 잘못된 데이터 제거
-      // if (bluetooth.read() == 0x02)
-      else  {
+                makeResponsePacket(&sdata.IRSensor[0], &response[0], 4);
+                bluetooth.write(response,15);
+                bufferflush();
+            }
+            else
+            {
+                // ETX Error, Flush
+                bufferflush();
+                makeResponsePacket(&sdata.IRSensor[0], &response[0], 3);
+                bluetooth.write(response,15);
+            }
+            
 
-        #ifdef DEBUG_MODE
-        Serial.print("---------------------------------------------------\n");
-        Serial.println("data[i]");
-        Serial.print((int)data[0]);
-        Serial.print("\t"); Serial.print((int)data[1]);
-        Serial.print("\t"); Serial.print((int)data[2]);
-        Serial.print("\t"); Serial.print((int)data[3]);
-        Serial.print("\t"); Serial.print((int)data[4]);
-        Serial.print("\t"); Serial.print((int)data[5]);
-        Serial.print("\t"); Serial.print((int)data[6]);
-        Serial.print("\t"); Serial.print((int)data[7]);
-        Serial.print("\t"); Serial.print((int)data[8]);
-        Serial.print("\n");
-
-        Serial.println("ERROR: STX is not detected");
-
-        Serial.print("Buffer: ");
-        Serial.println(bluetooth.available());
-
-        Serial.println("Buffer datas :");
-        while (bluetooth.available()) {
-          Serial.print((int)bluetooth.read());
-          Serial.print("\t");
         }
-        #endif
+        
 
+        
+    }
 
-        bluetooth.write(stxfail, 14);
-        bufferflush();
-      }
-  }
+    else  {
 
-  // if(bluetooth.available() >= 10 )
-  else  {
-    bluetooth.write(response,14);
-    bufferflush();
-  }
-
-<<<<<<< HEAD
-  bluetooth.write(response,14);
-=======
->>>>>>> unlimited_send
+        if (bluetooth.available() != 0)
+        {
+            // flush, Dataloss Error Send
+            bufferflush();
+            makeResponsePacket(&sdata.IRSensor[0], &response[0], 1);
+            bluetooth.write(response,15);
+        }
+        else
+        {
+            // No input Statement
+            //makeResponsePacket(&sdata.IRSensor[0], &response[0], 0);
+            //bluetooth.write(response,15);
+        }
+        
+    }
+    
 }
 
 
 
-/********************************************************************************/
-/*   F U N C T I O N S                                                          */
 
 
-
-    // 블루투스 버퍼 비우는 함수
-    int bufferflush() {
-      while (bluetooth.available()) {
-        bluetooth.read();
-      }
-
-      return 0;
-    }
-
-    // 알티노 -> 매트랩 패킷 생성
-    int makeResponsePacket(long *IRSensor_data ,unsigned char *response)  {
-      long hundred;
-      long temp = 0;
-      for(int i=0; i<6; i++)  {
+ // 알티노 -> 매트랩 패킷 생성
+int makeResponsePacket(long *IRSensor_data ,unsigned char *response, int code)  
+{
+    long hundred;
+    long temp = 0;
+    for(int i=0; i<6; i++)  
+    {
         hundred = 0;
         temp = *(IRSensor_data + i);
         //bluetooth.println(temp);
 
         hundred = temp >> 8;
-        *(response + (2*i+1)) = (char)hundred;
-        *(response + (2*i+2)) = (char)(temp - (hundred << 8));
+        *(response + (2*i+2)) = (char)hundred;
+        *(response + (2*i+3)) = (char)(temp - (hundred << 8));
 
-      }
-      #ifdef DEBUG_MODE
-      Serial.println("Func: int makeResponsePacket(long*, char*)");
-      Serial.print("Response Packet\n");
-      Serial.print(*IRSensor_data);
-      Serial.print("\t");
-      Serial.print(*IRSensor_data+1);
-      Serial.print("\t");
-      Serial.print(*IRSensor_data+2);
-      Serial.print("\t");
-      Serial.print(*IRSensor_data+3);
-      Serial.print("\n");
-      #endif
-
-      bluetooth.write(response,14);
-      return 0;
     }
+    #ifdef DEBUG_MODE
+    Serial.println("Func: int makeResponsePacket(long*, char*)");
+    Serial.print("Response Packet\n");
+    Serial.print(*IRSensor_data);
+    Serial.print("\t");
+    Serial.print(*IRSensor_data+1);
+    Serial.print("\t");
+    Serial.print(*IRSensor_data+2);
+    Serial.print("\t");
+    Serial.print(*IRSensor_data+3);
+    Serial.print("\n");
+    #endif
+
+    switch (code)
+    {
+
+    // No Input Statement
+    case 0:
+        *(response+1) = 0;
+        break;
+    
+    // Dataloss Error
+    case 1:
+        *(response+1) = 1;
+        break;
+
+    // STX Error
+    case 2:
+        *(response+1) = 2;
+        break;
+
+    // ETX Error
+    case 3:
+        *(response+1) = 3;
+        break;
+
+    // Ok
+    case 4:
+        *(response+1) = 4;
+        break;
+
+    
+    default:
+        break;
+    }
+
+    return 0;
+
+}
+
+// 블루투스 버퍼 비우는 함수
+int bufferflush() 
+{
+    while (bluetooth.available()) 
+    {
+        bluetooth.read();
+    }
+
+    return 0;
+}
+
+int ObstacleAvoid()
+{
+
+    return 0;
+}
