@@ -15,8 +15,8 @@ devlist = bluetoothlist("Timeout",20)
 device = bluetooth("201603107014")
 
 % 그래프 초기설정
-figure(1)
-Carshape = polyshape([-50 -50 50 50],[ 90 -90 -90 90]);
+%figure(1)
+%Carshape = polyshape([-50 -50 50 50],[ 90 -90 -90 90]);
 
 
 while 1
@@ -43,40 +43,43 @@ while 1
     % 입력받은 명령들을 패킷화
     command = [2 Speed_H Speed_L Steer_H Steer_L 65 65 65 3];
     
-    % 블루투스 시리얼로 int8형식으로 전송
-    write(device,command,"int8");
-    
-    % 통신 실패시 5번 정도 재통신 시도
-    for ii = 1:5
+    status = 0;
+    for COMcount = 1:10 
+        
+        % 블루투스 시리얼로 int8형식으로 전송
+        write(device,command,"uint8");
+        
+        
         raw_read = read(device,1,"uint8");
         
         % 시작 바이트 인식
         if raw_read == 2
-            recieve = read(device, 13, "uint8");
+            recieve = read(device, 14, "uint8");
             
             % 종료 바이트 인식 -> 데이터 패킷 이상 유무 확인
-            if recieve(13) == 3
+            if recieve(14) == 3
                 % 센서값 추출 부분
-                front_L = bitshift(recieve(1), 8) + recieve(2);
-                front_M = bitshift(recieve(3), 8) + recieve(4);
-                front_R = bitshift(recieve(5), 8) + recieve(6);
-                right = bitshift(recieve(7), 8) + recieve(8);
-                left = bitshift(recieve(9), 8) + recieve(10);
-                rear = bitshift(recieve(11), 8) + recieve(12);
+                status = recieve(1);
+                front_L = bitshift(recieve(2), 8) + recieve(3);
+                front_M = bitshift(recieve(4), 8) + recieve(5);
+                front_R = bitshift(recieve(6), 8) + recieve(7);
+                right = bitshift(recieve(8), 8) + recieve(9);
+                left = bitshift(recieve(10), 8) + recieve(11);
+                rear = bitshift(recieve(12), 8) + recieve(13);
                 
                 % 센서값 표시
-                result = [front_L, front_M, front_R, right, left, rear];
-                disp(result);
+                result = [status, front_L, front_M, front_R, right, left, rear];
+                disp(result)
+                
+                if status == 4
+                    break;
+                end
                 
                 % 그래프 그리기
                 %plot(front,'*')
                 %drawnow;
                 %axis square
                 %axis([-500 500 -500 500]);
-                
-                % 쌓여있는 오래된 버퍼 데이터 삭제
-                flush(device);
-                break;
                 
             else
                 flush(device);
@@ -86,8 +89,8 @@ while 1
             flush(device);
         end
     end
+end
     
     
  
-end
 
