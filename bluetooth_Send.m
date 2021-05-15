@@ -18,6 +18,12 @@ device = bluetooth("201603107014")
 %figure(1)
 %Carshape = polyshape([-50 -50 50 50],[ 90 -90 -90 90]);
 
+% 그래프 상수
+plot_front = [0, 0, 0];
+front_X = [-600 0 600];
+
+plot_side = [-500, 0, 500];
+right_X = [0, 0, 0];
 
 while 1
     
@@ -70,16 +76,23 @@ while 1
                 % 센서값 표시
                 result = [status, front_L, front_M, front_R, right, left, rear];
                 disp(result)
+         
+                    
+                % 그래프 생성
+                plot_front = [1000-front_L, 1000-front_M, 1000-front_R];
+                right_X = [1000-right, 1000-right, 1000-right];
+                left_X = [-1000+left, -1000+left, -1000+left];
+                plot_rear = [-1000+rear, -1000+rear, -1000+rear,];
+                
+                plot(front_X,plot_front,'*-', right_X,plot_side,'*-', left_X,plot_side,'*-', front_X, plot_rear,'*-' );
+                axis manual;
+                axis([-1100 1100 -1100 1100]);
+                grid on;
+                drawnow;
                 
                 if status == 4
                     break;
                 end
-                
-                % 그래프 그리기
-                %plot(front,'*')
-                %drawnow;
-                %axis square
-                %axis([-500 500 -500 500]);
                 
             else
                 flush(device);
