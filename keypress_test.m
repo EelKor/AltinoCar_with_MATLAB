@@ -6,9 +6,6 @@ fprintf("Connecting...\n");
 devlist = bluetoothlist("Timeout",20)
 device = bluetooth("201603107014")
 
-% 그래프 초기설정
-%figure(1)
-%Carshape = polyshape([-50 -50 50 50],[ 90 -90 -90 90]);
 
 % 그래프 상수
 plot_front = [0, 0, 0];
@@ -22,6 +19,8 @@ global speed;
 global steer;
 speed = 0;
 steer = 0;
+speed_run = 0;
+steer_run = 0;
 
 % 그래프 생성
 HndF = figure(1);
@@ -34,7 +33,7 @@ while 1
     % 시리얼 통신으로 음수는 전송하기 힘들어서
     % 0 ~ 2000으로 변환하여 전송
     speed_run = speed + 1000;
-    speed_run = int8(speed_run);
+    speed_run = round(speed_run);
     
     % 1000을 하나의 바이트에 담기 불가능
     % High byte, Low byte로 데이터를 쪼개서 전송
@@ -43,7 +42,7 @@ while 1
     
     % speed 와 동일
     steer_run = steer + 127;
-    steer_run = int8(steer_run);
+    steer_run = round(steer_run);
     Steer_H = bitshift(steer_run, -7);
     Steer_L = steer_run - bitshift(Steer_H, 7);
     
@@ -85,12 +84,14 @@ while 1
                 left_X = [-1000+left, -1000+left, -1000+left];
                 plot_rear = [-1000+rear, -1000+rear, -1000+rear,];
                 
-                subplot(2,2,[1 2])
+ 
                 plot(front_X,plot_front,'*-', right_X,plot_side,'*-', left_X,plot_side,'*-', front_X, plot_rear,'*-' );
                 axis manual;
                 axis([-1100 1100 -1100 1100]);
                 grid on;
                 drawnow;
+                fprintf("%d %d\n", steer, speed);
+                set(HndF,'KeyPressFcn', @KeyPressCallback, 'KeyReleaseFcn', @KeyReleaseCallback)
                 
                 if status == 4
                     break;
@@ -104,14 +105,6 @@ while 1
             flush(device);
         end
     end
-    fprintf("%d %d\n", steer, speed);
-    subplot(2,2,[2 3])
-    plot(steer,speed,'b*')
-    axis manual;
-    axis([-10 10 -10 10]);
-    grid on;
-    drawnow;
-    
-    set(HndF,'KeyPressFcn', @KeyPressCallback, 'KeyReleaseFcn', @KeyReleaseCallback)
+ 
 end
 

@@ -10,9 +10,16 @@ switch mode
        speed = 0;
         
     case(28)
-        steer = 0;
+        steer = steer + 10;
+        if steer > 0
+            steer = 0;
+        end
+        
         
     case(29)
-        steer = 0;
+        steer = steer - 10;
+        if steer < 0
+            steer = 0;
+        end
         
 end
