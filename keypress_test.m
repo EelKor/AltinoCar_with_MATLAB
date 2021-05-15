@@ -17,8 +17,11 @@ right_X = [0, 0, 0];
 % 전역변수 선언
 global speed;
 global steer;
+global clocksion;
 speed = 0;
 steer = 0;
+clocksion = 0;
+
 speed_run = 0;
 steer_run = 0;
 
@@ -47,7 +50,7 @@ while 1
     Steer_L = steer_run - bitshift(Steer_H, 7);
     
     % 입력받은 명령들을 패킷화
-    command = [2 Speed_H Speed_L Steer_H Steer_L 65 65 65 3];
+    command = [2 Speed_H Speed_L Steer_H Steer_L 65 65 clocksion 3];
     
     status = 0;
     for COMcount = 1:10 
