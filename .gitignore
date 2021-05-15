@@ -1,5 +1,7 @@
 # List of untracked files to ignore
 *.PNG
+*.o
+Altino/AltinoCar/.pio
 EMStop.m
 Altino/AltinoCar/.vscode/c_cpp_properties.json
 Altino/AltinoCar/.vscode/extensions.json
