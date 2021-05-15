@@ -1,10 +1,10 @@
 /***********   알티노 블루투스 제어   ************/
 /* ******************************************* */
-// 작성일: 2021-04-28
+// 작성일: 2021-04-28 ~ 2021-05-15
 // 작성자: 경상대학교 기계융합공학과 이승신 (2018013246)
 // 목  적: 공학프로그래밍 프로젝트
 // 설  명
-// * 매트랩 으로 부터 10 바이트 패킷을 수신 받아 알티노의 원격 제어 구현
+// * 매트랩 으로 부터 9 바이트 패킷을 수신 받아 알티노의 원격 제어 구현
 //
 //
 // Bluetooth Serial BaudRate = 9600bps
@@ -17,19 +17,19 @@
 // 매트랩 에서 10바이트 패킷을 전송
 //
 // 구  조
-// STX / Speed_H/ Speed_L /Steer_H /Steer_L/ None /None /None /None /ETX
+// STX / Speed_H/ Speed_L /Steer_H /Steer_L/None /None /None /ETX
 
 // STX = 시작 바이트
 
-// Speed_H = 전진 속도 100의 자리 이상
-// Speed_L = 전진 속도 100의 자리 미만
+// Speed_H = 전진 속도 상위 9비트
+// Speed_L = 전진 속도 하위 7비트
 // 코드 상에서 두개를 더함
-// Ex) STX 1 55
-// Speed = 155
-
-// Steer_H = 조향값 100의 자리 이상
-// Steer_L = 조향값 100의 자리 미만
-// 코드 상에서 두개를 더하여 최종 조향값이 나옴
+// Ex) speed = 300
+//     speed = 0000 0001 0010 1100(2)
+//   Speed_H = 0000 0010(2)
+//   Speed_L = 0010 1100(2)
+//
+// Steer 도 Speed와 같은 원리
 
 // None = 아직 할당 되지 않은 바이트
 
@@ -42,12 +42,19 @@
 // 알티노 에서 매트랩으로 응답 패킷 전송
 //
 // 구  조
-// STX / Front_IR_H / Front_IR_L / Left_IR_H / Left_IR_L / Right_IR_H / Right_IR_L / Rear_IR_H / Rear_IR_L / ETX
+// STX / Statement Code / Front_IR_H / Front_IR_L / Left_IR_H / Left_IR_L / Right_IR_H / Right_IR_L / Rear_IR_H / Rear_IR_L / ETX
 //
 // STX = 시작바이트
 //
-// Front_IR_H = 전방 적외선 센서값 100의 자리 이상
-// Front_IR_L = 전방 적외선 센서값 100의 자리 미만
+// Statement Code = 명령 처리 결과
+// 0 = No input Error - 현재 버그로 인해 비활성화 함
+// 1 = Dataloss Error ( 수신데이터 손실 오류)
+// 2 = STX Error ( 패킷의 시작 바이트 오류 )
+// 3 = ETX Error ( 패킷의 종료 바이트 오류 )
+// 4 = 정상
+//
+// Front_IR_H = 전방 적외선 센서값 상위 바이트
+// Front_IR_L = 전방 적외선 센서값 하위 바이트
 
 // 나머지 값들도 같은 원리로 명명.
 
@@ -70,6 +77,7 @@
 int bufferflush();
 int makeResponsePacket(long *IRSensor_data, unsigned char *response, int code);
 int ObstacleAvoid();
+int Clocksion(unsigned char *data);
 
 
 // 알티노 센서 구조체 선언 및 구조체 포인터 선언
@@ -152,7 +160,7 @@ void loop()
 
     else  
     {
-    Sound(0);
+    //Sound(0);
     }
     #endif
 
@@ -210,6 +218,10 @@ void loop()
 
                 // 릴리즈 모드: 알티노 제어
                 #ifndef DEBUG_MODE
+
+                // 클락션 기능
+                Clocksion(&data[6]);
+                
                 Go(throttle,throttle);
                 Steering2(steering, steeringTrim);
                 #endif
@@ -267,6 +279,9 @@ void loop()
                 Serial.print("unsigned int steeringTrim = ");
                 Serial.println(steeringTrim);
                 #endif
+
+                // 클락션 기능
+                Clocksion(&data[6]);
 
                 // 릴리즈 모드: 알티노 제어
                 #ifndef DEBUG_MODE
@@ -397,6 +412,26 @@ int bufferflush()
 
 int ObstacleAvoid()
 {
+
+    return 0;
+}
+
+// 클락션 기능
+int Clocksion(unsigned char *data)
+{
+    switch (*data)
+    {
+    case 1:
+        Sound(40);
+        break;
+    case 0:
+        Sound(0);
+        break;
+
+    default:
+        Sound(40);
+        break;
+    }
 
     return 0;
 }

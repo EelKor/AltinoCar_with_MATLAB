@@ -2,6 +2,7 @@ function KeyReleaseCallback(~, event)
 
 global speed;
 global steer;
+global clocksion;
 
 mode = event.Character;
 
@@ -21,5 +22,9 @@ switch mode
         if steer < 0
             steer = 0;
         end
+    
+    % Q 버튼
+    case(113)
+        clocksion = 0;
         
 end

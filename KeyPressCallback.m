@@ -2,6 +2,7 @@ function KeyPressCallback(hobj, event)
 
 global speed;
 global steer;
+global clocksion;
 
 mode = event.Character;
 
@@ -43,5 +44,9 @@ switch mode
     case(32)
         speed = 0;
         steer = 0;
+    
+    % Q 버튼
+    case(113)
+        clocksion = 1;
         
 end
