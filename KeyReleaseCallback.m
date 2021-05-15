@@ -1,18 +1,18 @@
 function KeyReleaseCallback(~, event)
 
-global myVariable;
-global myVariableX;
+global speed;
+global steer;
 
 mode = event.Character;
 
 switch mode
     case char(27)
-       myVariable = 0;
+       speed = 0;
         
     case(28)
-        myVariableX = 0;
+        steer = 0;
         
     case(29)
-        myVariableX = 0;
+        steer = 0;
         
 end
