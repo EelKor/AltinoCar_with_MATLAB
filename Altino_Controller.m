@@ -1,3 +1,30 @@
+% Altino_Controller.m
+% 작 성 자: 기계융합공학과 이승신(2018013246)
+% 작 성 일: 2021-04-28 ~ 2021-05-17
+% 설    명
+% 사용자의 키보드 조작으로 알티노 조종 및 알티노의 IR센서값을 매트랩에
+% 실시간 플로팅
+% 
+% 데이터 패킷 구조
+% MATLAB -> Altino
+% 9바이트 명령 패킷
+% STX Speed_H Speed_L Steer_H Steer_L None None Clocksion ETX
+%
+% STX = 시작 바이트
+%
+% Speed_H = 입력된 10진수 스피드 값을 이진법으로 변환후 비트 쉬프트 연산실시
+% Speed_L = 위와 같은 원리
+% 더 자세한 내용은 AltinoCar의 소스코드 main.c 주석 참조
+%
+% Steer_H = Speed_H와 동일
+% Steer_L = Speed_H와 동일
+%
+% None = 빈 공간 ( 향후 할당 가능 )
+%
+% Clocksion = 액세서리 제어 (빵빵)
+%
+% ETX = 종료 바이트
+
 clear all; close all;
 clc
 % 블루투스 리스트 표시
