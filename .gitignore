@@ -4,3 +4,6 @@ EMStop.m
 Altino/AltinoCar/.vscode/c_cpp_properties.json
 Altino/AltinoCar/.vscode/extensions.json
 Altino/AltinoCar/.vscode/launch.json
+*.o
+*.a
+Altino/AltinoCar/.pio/
