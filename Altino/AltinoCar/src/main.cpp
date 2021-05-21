@@ -17,7 +17,7 @@
 // 매트랩 에서 10바이트 패킷을 전송
 //
 // 구  조
-// STX / Speed_H/ Speed_L /Steer_H /Steer_L/None /None /None /ETX
+// STX / Speed_H/ Speed_L /Steer_H /Steer_L/None /None /ACC /ETX
 
 // STX = 시작 바이트
 
@@ -32,6 +32,10 @@
 // Steer 도 Speed와 같은 원리
 
 // None = 아직 할당 되지 않은 바이트
+
+// ACC = 악세사리 제어 바이트
+// 0000 0000
+// None / None / None / None // None / None / Light / Clocksion
 
 // ETX = 종료 바이트
 
@@ -77,7 +81,8 @@
 int bufferflush();
 int makeResponsePacket(long *IRSensor_data, unsigned char *response, int code);
 int ObstacleAvoid();
-int Clocksion(unsigned char *data);
+int Acc(unsigned char *data);
+
 
 
 // 알티노 센서 구조체 선언 및 구조체 포인터 선언
@@ -220,7 +225,7 @@ void loop()
                 #ifndef DEBUG_MODE
 
                 // 클락션 기능
-                Clocksion(&data[6]);
+                Acc(&data[6]);
                 
                 Go(throttle,throttle);
                 Steering2(steering, steeringTrim);
@@ -281,7 +286,7 @@ void loop()
                 #endif
 
                 // 클락션 기능
-                Clocksion(&data[6]);
+                Acc(&data[6]);
 
                 // 릴리즈 모드: 알티노 제어
                 #ifndef DEBUG_MODE
@@ -416,22 +421,33 @@ int ObstacleAvoid()
     return 0;
 }
 
-// 클락션 기능
-int Clocksion(unsigned char *data)
+// 악세서리 제어
+int Acc(unsigned char *data)
 {
-    switch (*data)
-    {
-    case 1:
-        Sound(40);
-        break;
-    case 0:
-        Sound(0);
-        break;
+    unsigned char led = 2;
+    unsigned char clocksion = 1;
 
-    default:
+    if (*data & clocksion)
+    {
         Sound(40);
-        break;
     }
+
+    else if (*data & led)
+    {
+        Led(0x0002);
+        Led(0x0001);
+        Led(0x8000);
+        Led(0x4000);
+    }
+
+    else
+    {
+        Sound(0);
+        Led(0x0000);
+    }
+    
+    
 
     return 0;
 }
+
