@@ -19,7 +19,7 @@
 % Steer_H = Speed_H와 동일
 % Steer_L = Speed_H와 동일
 %
-% None = 빈 공간 ( 향후 할당 가능 )
+% None = 빈 공간 ( 향후 할당 가능 )1
 %
 % Clocksion = 액세서리 제어 (빵빵)
 %

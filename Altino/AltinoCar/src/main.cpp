@@ -77,11 +77,10 @@
 #include <Arduino.h>
 #include <SoftwareSerial.h>
 #include <Altino.h>
+#include "Seung.h"
 
 int bufferflush();
-int makeResponsePacket(long *IRSensor_data, unsigned char *response, int code);
-int ObstacleAvoid();
-int Acc(unsigned char *data);
+
 
 
 
@@ -112,7 +111,7 @@ void setup()
 void loop() 
 {
 
-    // 센서 값 읽어오기
+    // 센서 값 읽어오기 및 악세사리 작동
     #ifndef DEBUG_MODE
     sdata = Sensor(1);
 
@@ -334,76 +333,6 @@ void loop()
     
 }
 
-
-
-
-
- // 알티노 -> 매트랩 패킷 생성
-int makeResponsePacket(long *IRSensor_data ,unsigned char *response, int code)  
-{
-    long hundred;
-    long temp = 0;
-    for(int i=0; i<6; i++)  
-    {
-        hundred = 0;
-        temp = *(IRSensor_data + i);
-        //bluetooth.println(temp);
-
-        hundred = temp >> 8;
-        *(response + (2*i+2)) = (char)hundred;
-        *(response + (2*i+3)) = (char)(temp - (hundred << 8));
-
-    }
-    #ifdef DEBUG_MODE
-    Serial.println("Func: int makeResponsePacket(long*, char*)");
-    Serial.print("Response Packet\n");
-    Serial.print(*IRSensor_data);
-    Serial.print("\t");
-    Serial.print(*IRSensor_data+1);
-    Serial.print("\t");
-    Serial.print(*IRSensor_data+2);
-    Serial.print("\t");
-    Serial.print(*IRSensor_data+3);
-    Serial.print("\n");
-    #endif
-
-    switch (code)
-    {
-
-    // No Input Statement
-    case 0:
-        *(response+1) = 0;
-        break;
-    
-    // Dataloss Error
-    case 1:
-        *(response+1) = 1;
-        break;
-
-    // STX Error
-    case 2:
-        *(response+1) = 2;
-        break;
-
-    // ETX Error
-    case 3:
-        *(response+1) = 3;
-        break;
-
-    // Ok
-    case 4:
-        *(response+1) = 4;
-        break;
-
-    
-    default:
-        break;
-    }
-
-    return 0;
-
-}
-
 // 블루투스 버퍼 비우는 함수
 int bufferflush() 
 {
@@ -414,40 +343,3 @@ int bufferflush()
 
     return 0;
 }
-
-int ObstacleAvoid()
-{
-
-    return 0;
-}
-
-// 악세서리 제어
-int Acc(unsigned char *data)
-{
-    unsigned char led = 2;
-    unsigned char clocksion = 1;
-
-    if (*data & clocksion)
-    {
-        Sound(40);
-    }
-
-    else if (*data & led)
-    {
-        Led(0x0002);
-        Led(0x0001);
-        Led(0x8000);
-        Led(0x4000);
-    }
-
-    else
-    {
-        Sound(0);
-        Led(0x0000);
-    }
-    
-    
-
-    return 0;
-}
-
