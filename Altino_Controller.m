@@ -31,7 +31,7 @@ clc
 fprintf("******  ALTINO Control Program *****\n");
 fprintf("Connecting...\n");
 devlist = bluetoothlist("Timeout",20)
-device = bluetooth("201603107014")
+device = bluetooth("201603107014",1,"ByteOrder","little-endian","Timeout",1)
 
 
 % 그래프 상수
@@ -121,8 +121,6 @@ while 1
         
         % 블루투스 시리얼로 int8형식으로 전송
         write(device,command,"uint8");
-        
-        
         raw_read = read(device,1,"uint8");
         
         % 시작 바이트 인식
